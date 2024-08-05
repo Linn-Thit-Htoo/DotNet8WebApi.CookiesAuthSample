@@ -4,84 +4,80 @@ using DotNet8WebApi.CookiesAuthSample.Models;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-namespace DotNet8WebApi.CookiesAuthSample.Controllers
+namespace DotNet8WebApi.CookiesAuthSample.Controllers;
+
+[ApiController]
+public class AuthController : BaseController
 {
-    [ApiController]
-    public class AuthController : BaseController
+    private readonly AppDbContext _context;
+
+    public AuthController(AppDbContext context)
     {
-        private readonly AppDbContext _context;
+        _context = context;
+    }
 
-        public AuthController(AppDbContext context)
+    [HttpGet, Route("/api/account")]
+    [Authorize]
+    public async Task<IActionResult> GetUserList()
+    {
+        try
         {
-            _context = context;
+            var lst = await _context.Tbl_Users.Where(x => x.IsActive).ToListAsync();
+            return Content(lst);
         }
-
-        [HttpGet, Route("/api/account")]
-        [Authorize]
-        public async Task<IActionResult> GetUserList()
+        catch (Exception ex)
         {
-            try
-            {
-                var lst = await _context.Tbl_Users.Where(x => x.IsActive).ToListAsync();
-                return Content(lst);
-            }
-            catch (Exception ex)
-            {
-                return InternalServerError(ex);
-            }
+            return InternalServerError(ex);
         }
+    }
 
-        [HttpPost("/api/account/login")]
-        public async Task<IActionResult> Login([FromBody] LoginRequestModel requestModel)
+    [HttpPost("/api/account/login")]
+    public async Task<IActionResult> Login([FromBody] LoginRequestModel requestModel)
+    {
+        try
         {
-            try
+            var item = await _context.Tbl_Users.FirstOrDefaultAsync(x =>
+                x.Email == requestModel.Email && x.Password == requestModel.Password && x.IsActive
+            );
+            if (item is null)
             {
-                var item = await _context.Tbl_Users.FirstOrDefaultAsync(x =>
-                    x.Email == requestModel.Email
-                    && x.Password == requestModel.Password
-                    && x.IsActive
-                );
-                if (item is null)
-                {
-                    return NotFound("No Data Found.");
-                }
-
-                var claims = new List<Claim>()
-                {
-                    new("UserName", item.UserName),
-                    new("Email", item.Email),
-                    new("UserRole", item.UserRole)
-                };
-
-                var claimsIdentity = new ClaimsIdentity(
-                    claims,
-                    CookieAuthenticationDefaults.AuthenticationScheme
-                );
-                var authProperties = new AuthenticationProperties { };
-
-                await HttpContext.SignInAsync(
-                    CookieAuthenticationDefaults.AuthenticationScheme,
-                    new ClaimsPrincipal(claimsIdentity),
-                    authProperties
-                );
-
-                return Content(item);
+                return NotFound("No Data Found.");
             }
-            catch (Exception ex)
+
+            var claims = new List<Claim>()
             {
-                return InternalServerError(ex);
-            }
+                new("UserName", item.UserName),
+                new("Email", item.Email),
+                new("UserRole", item.UserRole)
+            };
+
+            var claimsIdentity = new ClaimsIdentity(
+                claims,
+                CookieAuthenticationDefaults.AuthenticationScheme
+            );
+            var authProperties = new AuthenticationProperties { };
+
+            await HttpContext.SignInAsync(
+                CookieAuthenticationDefaults.AuthenticationScheme,
+                new ClaimsPrincipal(claimsIdentity),
+                authProperties
+            );
+
+            return Content(item);
         }
-
-        [HttpPost("/api/account/logout")]
-        public async Task<IActionResult> LogoutAsync()
+        catch (Exception ex)
         {
-            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-            return Content("Success.");
+            return InternalServerError(ex);
         }
+    }
+
+    [HttpPost("/api/account/logout")]
+    public async Task<IActionResult> LogoutAsync()
+    {
+        await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+        return Content("Success.");
     }
 }
