@@ -9,13 +9,18 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-builder.Services.AddDbContext<AppDbContext>(opt =>
-{
-    opt.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
-    opt.UseSqlServer(builder.Configuration.GetConnectionString("DbConnection"));
-}, ServiceLifetime.Transient, ServiceLifetime.Transient);
+builder.Services.AddDbContext<AppDbContext>(
+    opt =>
+    {
+        opt.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
+        opt.UseSqlServer(builder.Configuration.GetConnectionString("DbConnection"));
+    },
+    ServiceLifetime.Transient,
+    ServiceLifetime.Transient
+);
 
-builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+builder
+    .Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
         options.Cookie.Name = "auth";
