@@ -1,0 +1,6 @@
+@DotNet8WebApi.CookiesAuthSample_HostAddress = http://localhost:5046
+
+GET {{DotNet8WebApi.CookiesAuthSample_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
